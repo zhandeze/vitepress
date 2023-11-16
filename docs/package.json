@@ -1,6 +1,6 @@
 {
   "scripts": {
-    "dev": "vitepress dev",
+    "dev": "vitepress dev --debug",
     "build": "vitepress build",
     "preview": "vitepress preview"
   }
