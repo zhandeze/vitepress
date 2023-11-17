@@ -9,11 +9,11 @@ export default defineConfig({
   base: '/vitepress',
   themeConfig: {
       
-    // nav: nav(),
+    nav: nav(),
 
-    // sidebar: {
-    //   '/document/': { base: '/document/', items: slidebarDocument() }
-    // },
+    sidebar: {
+      '/document/': { base: '/document/', items: slidebarDocument() }
+    },
 
     socialLinks: [
       { icon: 'github', link: 'https://github.com/vuejs/vitepress' }
@@ -61,6 +61,20 @@ function slidebarDocument():DefaultTheme.SidebarItem[] {
       { text: 'challenges', base: '/document/typescript/challenges/', collapsed: false, items: [
         { text: 'easy', link: 'easy'}
       ]}
+    ]
+  }, {
+    text: 'vue',
+    base: '/document/vue',
+    collapsed: false,
+    items: [
+      {
+        text: 'render',
+        base: '/document/render',
+        collapsed: false,
+        items: [
+          { text: 'h', link: 'h'}
+        ]
+      }
     ]
   }]
 }
