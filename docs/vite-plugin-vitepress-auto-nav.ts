@@ -5,7 +5,7 @@ interface Item {
   name: string;
   base: string[];
   floders: Map<string, Item>;
-  files: string[];
+  fileNames: string[];
 }
 
 export default function (options = {}): Plugin {
@@ -18,7 +18,7 @@ export default function (options = {}): Plugin {
         name,
         base,
         floders: new Map(),
-        files: []
+        fileNames: []
       });
 
       const tree = createItem();
@@ -40,27 +40,27 @@ export default function (options = {}): Plugin {
           item = item.floders.get(name)!;
         });
 
-        !isIndexMd && item.files.push(last.replace(/\.md$/, ''));
+        !isIndexMd && item.fileNames.push(last.replace(/\.md$/, ''));
       });
 
-      const deep = (current: Item): DefaultTheme.SidebarItem[] => {
-        let items: any[] = [];
-        current.floders.forEach((value) => {
-          items = items.concat(deep(value));
+      const deep = (item: Item, depth: number): DefaultTheme.SidebarItem[] => {
+        let items: DefaultTheme.SidebarItem[] = [];
+        item.floders.forEach((value) => {
+          items = items.concat(deep(value, depth + 1));
         });
 
-        if (current.files.length) {
-          const files = current.files.map((fileName) => ({ text: fileName, link: fileName }));
+        if (item.fileNames.length) {
+          const files = item.fileNames.map((fileName) => ({ text: fileName, link: fileName }));
           items = items.concat(files);
         }
 
-        if (current.name) {
-          const base = `/${current.base.join('/')}/`;
+        if (item.name) {
+          const base = `/${item.base.join('/')}/`;
           items = [
             {
-              text: current.name,
+              text: item.name,
               base,
-              collapsed: false,
+              collapsed: depth > 3,
               items
             }
           ];
@@ -70,8 +70,7 @@ export default function (options = {}): Plugin {
 
       const nav: DefaultTheme.NavItem[] = [];
       const sidebar: DefaultTheme.Sidebar = {};
-
-      deep(tree).forEach((item) => {
+      deep(tree, 1).forEach((item) => {
         const link = item.base as string;
         nav.push({
           text: item.text!,
@@ -85,7 +84,6 @@ export default function (options = {}): Plugin {
           };
         }
       });
-      debugger
       vitepress.site.themeConfig.nav = nav;
       vitepress.site.themeConfig.sidebar = sidebar;
 
