@@ -1,5 +1,9 @@
-import { Plugin, UserConfig } from 'vite';
+import { Plugin, UserConfig, ResolvedConfig } from 'vite';
 import { SiteConfig, DefaultTheme } from 'vitepress';
+import { utimesSync } from 'fs';
+import { dirname, resolve } from 'path';
+import { fileURLToPath } from 'url';
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 interface Item {
   name: string;
@@ -11,6 +15,17 @@ interface Item {
 export default function (options = {}): Plugin {
   return {
     name: 'vite-plugin-vitepress-auto-nav',
+    configureServer({ watcher }) {
+      const configPath = resolve(__dirname, './config.ts');
+
+      watcher.on('all', (event, path) => {
+        // 过滤掉 change 事件和非 md 文件操作
+        if (event === 'change' || !path.endsWith('.md')) return;
+
+        // 修改配置文件系统时间戳，触发更新
+        utimesSync(configPath, new Date(), new Date());
+      });
+    },
     config(config) {
       const { vitepress } = config as UserConfig & { vitepress: SiteConfig };
 
