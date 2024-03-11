@@ -8,7 +8,6 @@ date: 2021-12-24 11:14:39
 - 新建~/proxy.ps1文件
 
 ```sh
-#!/bin/bash
 param(
   [Parameter(Mandatory=$false)]
   [switch]$off
