@@ -6,7 +6,7 @@ date: 2021-12-24 11:14:39
 
 
 ```js
-sudo apt install fonts-noto-cjk
+sudo apt install fonts-noto-cjk  puppeteer所需的字体
 
 
 libcups.so.2  sudo apt install -y libcups2
