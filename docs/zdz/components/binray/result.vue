@@ -11,6 +11,10 @@ const props = defineProps({
       <div class="value">{{ result.binary }}（长度{{ result.binary.length }}）</div>
     </div>
     <div class="field-item">
+      <div class="label">最终值：</div>
+      <div class="value">{{ result.actualBinary }}（长度{{ result.actualBinary.length }}）</div>
+    </div>
+    <div class="field-item">
       <div class="label">符号位：</div>
       <div class="value">{{ result.sign }}</div>
     </div>
@@ -18,8 +22,8 @@ const props = defineProps({
       <div class="label">指数位：</div>
       <div class="value">
         <span class="span1">{{ result.exponent }}</span>
-        <span class="span1">2 ^ {{ result.index }}</span>
         <span class="span1">{{ result.actualIndex }}</span>
+        <span class="span1">2 ^ {{ result.index }}</span>
       </div>
     </div>
     <div class="field-item">
@@ -29,13 +33,13 @@ const props = defineProps({
     <div v-if="result.rounded" class="field-item column">
       <div class="label">舍入情况：</div>
       <div class="value">
-        <table class="rounded-table">
+        <table>
           <tbody>
             <tr>
               <td
                 v-for="(item, index) of result.rounded.a"
                 :key="index"
-                :class="[{ active: item != result.rounded.result[index] }]"
+                :class="[{ active1: item != result.rounded.result[index] }]"
               >
                 {{ item }}
               </td>
@@ -78,16 +82,6 @@ const props = defineProps({
     padding: 0 4px;
     border-radius: 4px;
     margin-right: 8px;
-  }
-}
-.rounded-table {
-  td.active {
-    color: #a8b1ff;
-    font-weight: 500;
-  }
-  td.active2 {
-    color: #8a5402;
-    font-weight: 500;
   }
 }
 </style>

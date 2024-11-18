@@ -1,7 +1,7 @@
 <script setup>
 import { useData } from 'vitepress';
-import { computed, reactive, ref } from 'vue';
-import { decimalToBinary, binaryToDecimal } from './utils';
+import { computed, onMounted, reactive, ref } from 'vue';
+import { decimalToBinary, binaryToDecimal, binaryPlus } from './utils';
 import Result from './result.vue';
 const { isDark } = useData();
 const symbols = {
@@ -33,8 +33,10 @@ const input3 = reactive({
   num2: '',
   result1: null,
   result2: null,
-  result: null
+  result: null,
+  decimal: null
 });
+
 function toNumber(num) {
   if (num === '') {
     throw new Error('不能为空');
@@ -53,10 +55,12 @@ function onConfirmClick2() {
   input2.result = binaryToDecimal(input2.num);
 }
 function onConfirmClick3() {
-  const num1 = toNumber(input3.num1)
-  const num2 = toNumber(input3.num2)
-  input3.result1 = decimalToBinary(num1)
-  input3.result2 = decimalToBinary(num2)
+  const num1 = toNumber(input3.num1);
+  const num2 = toNumber(input3.num2);
+  input3.result1 = decimalToBinary(num1);
+  input3.result2 = decimalToBinary(num2);
+  input3.result = binaryPlus(input3.result1.actualBinary, input3.result2.actualBinary);
+  input3.decimal = binaryToDecimal(input3.result.result.join(''));
 }
 </script>
 
@@ -122,8 +126,42 @@ function onConfirmClick3() {
           <button class="button active" type="submit">确认</button>
         </div>
       </form>
-      <Result :result="input3.result1" style="margin: 12px 0 40px 0;"/>
-      <Result :result="input3.result2"/>
+      <Result :result="input3.result1" style="margin: 12px 0 40px 0" />
+      <Result :result="input3.result2" />
+      <div v-if="input3.result" style="margin-top: 30px">
+        <div>运算结果：</div>
+        <table>
+          <tbody>
+            <tr>
+              <td
+                v-for="(item, index) of input3.result.a"
+                :key="index"
+                :class="[{ active1: index < input3.result.zero.astart || index > input3.result.zero.aend }]"
+              >
+                {{ item }}
+              </td>
+            </tr>
+            <tr>
+              <td
+                v-for="(item, index) of input3.result.b"
+                :key="index"
+                :class="[{ active1: index < input3.result.zero.bstart || index > input3.result.zero.bend }]"
+              >
+                {{ item }}
+              </td>
+            </tr>
+            <tr>
+              <td v-for="(item, index) of input3.result.carry" :key="index" :class="[{ active2: item == 1 }]">
+                {{ item || '' }}
+              </td>
+            </tr>
+            <tr>
+              <td v-for="(item, index) of input3.result.result" :key="index">{{ item }}</td>
+            </tr>
+          </tbody>
+        </table>
+        <div>十进制：{{ input3.decimal }}</div>
+      </div>
     </div>
   </div>
 </template>
@@ -146,6 +184,14 @@ function onConfirmClick3() {
   }
   td {
     padding: 4px;
+  }
+  td.active1 {
+    color: #a8b1ff;
+    font-weight: 500;
+  }
+  td.active2 {
+    color: #8a5402;
+    font-weight: 500;
   }
 }
 .button {

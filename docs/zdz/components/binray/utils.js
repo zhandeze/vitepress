@@ -94,6 +94,7 @@ function floatToParts(num, binary) {
     binary = `${integer}.${decimal.slice(0, 54 + offset)}`;
 
     // 从0开始算
+    // 进位规则：
     // 如果第51位为1 且 第52位和第53位至少有一个是1，则需要进位
     // 如果第51位为1 且 第52位和第53位都为0，第50位为1，则需要进位
     // 总结：如果第51位为1，第50、52和53位有一个是1，则需要进位
@@ -105,6 +106,7 @@ function floatToParts(num, binary) {
   } else {
     mantissa = decimal.padEnd(52, '0');
   }
+  const actualBinary = `${int}.${mantissa}`;
 
   // 指数位（11）
   if ([1, -1].includes(num)) {
@@ -113,40 +115,19 @@ function floatToParts(num, binary) {
     index = mantissa.indexOf('1') + 1;
     mantissa = mantissa.slice(index);
     index = -index;
-    int = '1';
-  } else if (!index) {
+  } else {
     index = int.length - 1;
   }
   const actualIndex = index + 1023;
   const exponent = actualIndex.toString(2).padStart(11, '0');
-
-  // binary = `${Int}.${decimal.slice(0, 54 + (index < 0 ? -index : 0))}`;
-
-  // 尾数位（52）
-  // 从0开始算
-  // 如果第51位为1 且 第52位和第53位至少有一个是1，则需要进位
-  // 如果第51位为1 且 第52位和第53位都为0，第50位为1，则需要进位
-  // 总结：如果第51位为1，第50、52和53位有一个是1，则需要进位
-  // let mantissa = decimal.slice(0, 52).padEnd(52, '0');
-  // let changeIndex = Infinity;
-  // if (decimal[51] === '1' && [50, 52, 53].find((i) => decimal[i] === '1')) {
-  //   const { result } = binaryPlus(`${int}.${mantissa}`, `0.${''.padStart(51, '0')}1`);
-  //   const [a, b] = result.join('').split('.');
-  //   index += a.length - int.length;
-
-  //   for (let i = 0; i < mantissa.length; i++) {
-  //     if (mantissa[i] !== b[i]) {
-  //       changeIndex = i;
-  //       break;
-  //     }
-  //   }
-
-  //   mantissa = b;
-  // }
+  if (actualIndex === 0) {
+    index = 0;
+  }
 
   return {
     num,
     binary,
+    actualBinary,
     rounded,
     index,
     actualIndex,
@@ -165,14 +146,41 @@ function floatToParts(num, binary) {
  * 进位后如果是  1 + 1 + 1 = 11 写1 进位1
  */
 export function binaryPlus(a, b) {
-  const [aint, adecimal = ''] = a.split('.');
-  const [bint, bdecimal = ''] = b.split('.');
+  let [aint, adecimal = ''] = a.split('.');
+  let [bint, bdecimal = ''] = b.split('.');
 
-  const alen = Math.max(aint.length, bint.length);
-  const blen = Math.max(adecimal.length, bdecimal.length);
-  const dot = blen ? '.' : '';
-  a = aint.padStart(alen, '0') + dot + adecimal.padEnd(blen, '0');
-  b = bint.padStart(alen, '0') + dot + bdecimal.padEnd(blen, '0');
+  // const alen = Math.max(aint.length, bint.length);
+  // const blen = Math.max(adecimal.length, bdecimal.length);
+  // const dot = blen ? '.' : '';
+  // a = aint.padStart(alen, '0') + dot + adecimal.padEnd(blen, '0');
+  // b = bint.padStart(alen, '0') + dot + bdecimal.padEnd(blen, '0');
+
+  const zero = {
+    astart: 0,
+    bstart: 0,
+    aend: a.length,
+    bend: b.length,
+  }
+  if (bint.length > aint.length) {
+    zero.astart = bint.length - aint.length;
+    aint = aint.padStart(bint.length, '0');
+  } else {
+    zero.bstart = aint.length - bint.length;
+    bint = bint.padStart(aint.length, '0');
+  }
+  let dot = ''
+  if (adecimal || bdecimal) {
+    dot = '.'
+    if (bdecimal.length > adecimal.length) {
+      zero.aend = aint.length + adecimal.length;
+      adecimal = adecimal.padEnd(bdecimal.length, '0');
+    } else {
+      zero.bend = bint.length + bdecimal.length;
+      bdecimal = bdecimal.padEnd(adecimal.length, '0')
+    }
+  }
+  a = aint + dot + adecimal
+  b = bint + dot + bdecimal
 
   let carry = Array(a.length + 1);
   let result = Array(a.length + 1);
@@ -212,6 +220,8 @@ export function binaryPlus(a, b) {
     // 进位了, 需要在前面补0，方便展示
     a = a.padStart(result.length, '0');
     b = b.padStart(result.length, '0');
+    zero.astart += result.length - a.length;
+    zero.bstart += result.length - a.length;
   }
-  return { a, b, result, carry };
+  return { a, b, result, carry, zero };
 }

@@ -99,7 +99,6 @@ export default function (options = {}): Plugin {
           };
         }
       });
-      console.log('[zdz]:', nav)
       vitepress.site.themeConfig.nav = nav;
       vitepress.site.themeConfig.sidebar = sidebar;
 
