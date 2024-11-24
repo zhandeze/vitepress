@@ -1,4 +1,8 @@
 import NP from 'number-precision';
+
+/**
+ * 二转十
+ */
 export function binaryToDecimal(binaryString) {
   let decimalValue = 0;
   let [int, decimal] = binaryString.split('.');
@@ -22,6 +26,9 @@ export function binaryToDecimal(binaryString) {
   return decimalValue;
 }
 
+/**
+ * 十转二
+ */
 export function decimalToBinary(num) {
   const binary = Number.isInteger(num) ? num.toString(2) : doDecimalToBinary(num);
   return floatToParts(num, binary);
@@ -51,7 +58,6 @@ function doDecimalToBinary(num, maxPrecision = 100) {
     //     但是如果num为1.9999999999999998
     //     使用toFixed(1)又会有问题
     fractionalPart = NP.times(fractionalPart, 2); // fractionalPart *= 2
-    // let zdz = fractionalPart;
     let bit = Math.floor(fractionalPart);
     binaryFractional += bit;
     fractionalPart = NP.minus(fractionalPart, bit); // fractionalPart - bit
@@ -100,7 +106,7 @@ function floatToParts(num, binary) {
     // 总结：如果第51位为1，第50、52和53位有一个是1，则需要进位
     if (decimal[51 + offset] === '1' && [50, 52, 53].find((i) => decimal[i + offset] === '1')) {
       rounded = binaryPlus(`${int}.${mantissa}`, `0.${''.padStart(51 + offset, '0')}1`);
-      rounded.a += binary.slice(-2); // 方便展示
+      rounded.a += binary.slice(-2); // 这里加多2位 a要展示54位 方便查看进位情况
       [int, mantissa] = rounded.result.join('').split('.');
     }
   } else {
@@ -146,41 +152,10 @@ function floatToParts(num, binary) {
  * 进位后如果是  1 + 1 + 1 = 11 写1 进位1
  */
 export function binaryPlus(a, b) {
-  let [aint, adecimal = ''] = a.split('.');
-  let [bint, bdecimal = ''] = b.split('.');
+  const res = formatNumber(a, b);
+  a = res.a
+  b = res.b
 
-  // const alen = Math.max(aint.length, bint.length);
-  // const blen = Math.max(adecimal.length, bdecimal.length);
-  // const dot = blen ? '.' : '';
-  // a = aint.padStart(alen, '0') + dot + adecimal.padEnd(blen, '0');
-  // b = bint.padStart(alen, '0') + dot + bdecimal.padEnd(blen, '0');
-
-  const zero = {
-    astart: 0,
-    bstart: 0,
-    aend: a.length,
-    bend: b.length,
-  }
-  if (bint.length > aint.length) {
-    zero.astart = bint.length - aint.length;
-    aint = aint.padStart(bint.length, '0');
-  } else {
-    zero.bstart = aint.length - bint.length;
-    bint = bint.padStart(aint.length, '0');
-  }
-  let dot = ''
-  if (adecimal || bdecimal) {
-    dot = '.'
-    if (bdecimal.length > adecimal.length) {
-      zero.aend = aint.length + adecimal.length;
-      adecimal = adecimal.padEnd(bdecimal.length, '0');
-    } else {
-      zero.bend = bint.length + bdecimal.length;
-      bdecimal = bdecimal.padEnd(adecimal.length, '0')
-    }
-  }
-  a = aint + dot + adecimal
-  b = bint + dot + bdecimal
 
   let carry = Array(a.length + 1);
   let result = Array(a.length + 1);
@@ -220,8 +195,66 @@ export function binaryPlus(a, b) {
     // 进位了, 需要在前面补0，方便展示
     a = a.padStart(result.length, '0');
     b = b.padStart(result.length, '0');
-    zero.astart += result.length - a.length;
-    zero.bstart += result.length - a.length;
+    res.astart += result.length - a.length;
+    res.bstart += result.length - a.length;
   }
-  return { a, b, result, carry, zero };
+  res.a = a;
+  res.b = b;
+  res.result = result;
+  res.carry = carry;
+  return res;
+}
+
+
+export function binaryMinus(r1, r2) {
+  // 2 - 3 = -1  3 - 2 = 1
+  // -2 - 3 = -5 2 + 3 = -5
+  // 2 - -3 = 5  2 + 3 = 5
+  // -2 - (-3) = 1  3 - 2 = 1
+  // -3 - (-2) = 1 3 - 2 = -1
+  const res = formatNumber(a, b)
+  a = res.a;
+  b = res.b;
+
+}
+
+/**
+ * 将a和b的长度对齐，前面补0或后面补0
+ * 例如:
+ *  a = 1.111
+ *  b = 11.11
+ *  补0后
+ *  a = 01.111
+ *  b = 11.110
+ */
+function formatNumber(a, b) {
+  const format = (c, d, fnName) => {
+    const len = Math.max(c.length, d.length);
+    const zero = Math.abs(c.length - d.length);
+    let czero = 0;
+    let dzero = 0;
+    c.length > d.length ? (dzero = zero) : (czero = zero);
+    c = c[fnName](len, '0');
+    d = d[fnName](len, '0');
+    return [c, d, czero, dzero];
+  };
+
+  let [aint, adecimal = ''] = a.split('.');
+  let [bint, bdecimal = ''] = b.split('.');
+  let astart = 0;
+  let bstart = 0;
+  let aend = 0;
+  let bend = 0;
+  let dot = '';
+
+  [aint, bint, astart, bstart] = format(aint, bint, 'padStart');
+
+  if (adecimal || bdecimal) {
+    dot = '.';
+    [adecimal, bdecimal, aend, bend] = format(adecimal, bdecimal, 'padEnd');
+  }
+  a = aint + dot + adecimal;
+  b = bint + dot + bdecimal;
+  
+  return { a, b, astart, bstart, aend, bend };
 }

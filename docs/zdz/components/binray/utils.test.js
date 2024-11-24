@@ -1,9 +1,9 @@
-import { test, assert, expect } from 'vitest';
+import { test, assert, expect, it } from 'vitest';
 import { decimalToBinary } from './utils';
 
 test('decimalToBinary', () => {
-  var info = decimalToBinary(1.9999999999999998);
-  console.log('[zdz]:', info)
+  // var info = decimalToBinary(1.9999999999999998);
+  // console.log('[zdz]:', info)
   // var info = decimalToBinary(0.1);
   // assert.equal(info.binary, '0.0001100110011001100110011001100110011001100110011001100110');
   // assert.equal(info.binary.length, 60);

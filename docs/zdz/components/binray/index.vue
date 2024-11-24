@@ -1,7 +1,7 @@
 <script setup>
 import { useData } from 'vitepress';
-import { computed, onMounted, reactive, ref } from 'vue';
-import { decimalToBinary, binaryToDecimal, binaryPlus } from './utils';
+import { computed, reactive, ref } from 'vue';
+import { decimalToBinary, binaryToDecimal, binaryPlus, binaryMinus } from './utils';
 import Result from './result.vue';
 const { isDark } = useData();
 const symbols = {
@@ -9,11 +9,13 @@ const symbols = {
   list: [
     {
       name: '+',
-      type: 'plus'
+      type: 'plus',
+      handler: (r1, r2) => binaryPlus(r1.actualBinary, r2.actualBinary)
     },
     {
       name: '-',
-      type: 'minus'
+      type: 'minus',
+      handler: (r1, r2) => binaryMinus(r1, r2)
     }
   ]
 };
@@ -59,8 +61,14 @@ function onConfirmClick3() {
   const num2 = toNumber(input3.num2);
   input3.result1 = decimalToBinary(num1);
   input3.result2 = decimalToBinary(num2);
-  input3.result = binaryPlus(input3.result1.actualBinary, input3.result2.actualBinary);
+  input3.result = symbol.value.handler(input3.result1, input3.result2);
   input3.decimal = binaryToDecimal(input3.result.result.join(''));
+}
+function isActive(result, type, index) {
+  const str = result[type];
+  const start = result[type + 'start']
+  const end = str.length - 1 - result[type + 'end']
+  return index < start || index > end;
 }
 </script>
 
@@ -130,13 +138,14 @@ function onConfirmClick3() {
       <Result :result="input3.result2" />
       <div v-if="input3.result" style="margin-top: 30px">
         <div>运算结果：</div>
+        <div>蓝色0：加数1和加数2，长度不一致时所补的0</div>
         <table>
           <tbody>
             <tr>
               <td
                 v-for="(item, index) of input3.result.a"
                 :key="index"
-                :class="[{ active1: index < input3.result.zero.astart || index > input3.result.zero.aend }]"
+                :class="[{ active1: isActive(input3.result, 'a', index) }]"
               >
                 {{ item }}
               </td>
@@ -145,12 +154,12 @@ function onConfirmClick3() {
               <td
                 v-for="(item, index) of input3.result.b"
                 :key="index"
-                :class="[{ active1: index < input3.result.zero.bstart || index > input3.result.zero.bend }]"
+                :class="[{ active1: isActive(input3.result, 'b', index) }]"
               >
                 {{ item }}
               </td>
             </tr>
-            <tr>
+            <tr v-if="symbol.name === '+'">
               <td v-for="(item, index) of input3.result.carry" :key="index" :class="[{ active2: item == 1 }]">
                 {{ item || '' }}
               </td>

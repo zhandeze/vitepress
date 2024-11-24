@@ -1,4 +1,4 @@
-// node_modules/.pnpm/registry.npmjs.org+number-precision@1.6.0/node_modules/number-precision/build/index.es.js
+// node_modules/.pnpm/number-precision@1.6.0/node_modules/number-precision/build/index.es.js
 function strip(num, precision) {
   if (precision === void 0) {
     precision = 15;

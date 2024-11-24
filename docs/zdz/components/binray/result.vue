@@ -7,11 +7,11 @@ const props = defineProps({
 <template>
   <div v-if="result" class="result" style="--labelWidth: auto">
     <div class="field-item">
-      <div class="label">原始值：</div>
+      <div class="label">初始值：</div>
       <div class="value">{{ result.binary }}（长度{{ result.binary.length }}）</div>
     </div>
     <div class="field-item">
-      <div class="label">最终值：</div>
+      <div class="label">实际值：</div>
       <div class="value">{{ result.actualBinary }}（长度{{ result.actualBinary.length }}）</div>
     </div>
     <div class="field-item">
