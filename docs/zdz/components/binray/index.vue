@@ -10,12 +10,12 @@ const symbols = {
     {
       name: '+',
       type: 'plus',
-      handler: (r1, r2) => binaryPlus(r1.actualBinary, r2.actualBinary)
+      handler: binaryPlus
     },
     {
       name: '-',
       type: 'minus',
-      handler: (r1, r2) => binaryMinus(r1, r2)
+      handler: binaryMinus
     }
   ]
 };
@@ -47,7 +47,6 @@ function toNumber(num) {
   if (isNaN(num)) {
     throw new Error('请输入数字');
   }
-  console.log('[num]:', num);
   return num;
 }
 function onConfirmClick1() {
@@ -59,15 +58,12 @@ function onConfirmClick2() {
 function onConfirmClick3() {
   const num1 = toNumber(input3.num1);
   const num2 = toNumber(input3.num2);
-  input3.result1 = decimalToBinary(num1);
-  input3.result2 = decimalToBinary(num2);
-  input3.result = symbol.value.handler(input3.result1, input3.result2);
-  input3.decimal = binaryToDecimal(input3.result.result.join(''));
+  input3.result = symbol.value.handler(num1, num2);
 }
 function isActive(result, type, index) {
   const str = result[type];
-  const start = result[type + 'start']
-  const end = str.length - 1 - result[type + 'end']
+  const start = result[type + 'start'];
+  const end = str.length - 1 - result[type + 'end'];
   return index < start || index > end;
 }
 </script>
@@ -134,43 +130,58 @@ function isActive(result, type, index) {
           <button class="button active" type="submit">确认</button>
         </div>
       </form>
-      <Result :result="input3.result1" style="margin: 12px 0 40px 0" />
-      <Result :result="input3.result2" />
-      <div v-if="input3.result" style="margin-top: 30px">
-        <div>运算结果：</div>
-        <div>蓝色0：加数1和加数2，长度不一致时所补的0</div>
-        <table>
-          <tbody>
-            <tr>
-              <td
-                v-for="(item, index) of input3.result.a"
-                :key="index"
-                :class="[{ active1: isActive(input3.result, 'a', index) }]"
-              >
-                {{ item }}
-              </td>
-            </tr>
-            <tr>
-              <td
-                v-for="(item, index) of input3.result.b"
-                :key="index"
-                :class="[{ active1: isActive(input3.result, 'b', index) }]"
-              >
-                {{ item }}
-              </td>
-            </tr>
-            <tr v-if="symbol.name === '+'">
-              <td v-for="(item, index) of input3.result.carry" :key="index" :class="[{ active2: item == 1 }]">
-                {{ item || '' }}
-              </td>
-            </tr>
-            <tr>
-              <td v-for="(item, index) of input3.result.result" :key="index">{{ item }}</td>
-            </tr>
-          </tbody>
-        </table>
-        <div>十进制：{{ input3.decimal }}</div>
-      </div>
+      <template v-if="input3.result">
+        <Result :result="input3.result.num1" style="margin: 12px 0 40px 0" />
+        <Result :result="input3.result.num2" />
+        <div style="margin-top: 30px">
+          <div>运算结果：</div>
+          <table>
+            <tbody>
+              <tr>
+                <td
+                  v-for="(item, index) of input3.result.a"
+                  :key="index"
+                  :class="[{ active1: isActive(input3.result, 'a', index) }]"
+                >
+                  {{ item }}
+                </td>
+              </tr>
+              <tr v-if="input3.result.borrows" class="tr-borrows">
+                <td v-for="(item, index) of input3.result.borrows" :key="index">
+                  {{ item || '' }}
+                </td>
+              </tr>
+              <tr v-if="input3.result.borroweds" class="tr-borroweds">
+                <td v-for="(item, index) of input3.result.borroweds" :key="index">
+                  {{ item }}
+                </td>
+              </tr>
+              <tr>
+                <td
+                  v-for="(item, index) of input3.result.b"
+                  :key="index"
+                  :class="[{ active1: isActive(input3.result, 'b', index) }]"
+                >
+                  {{ item }}
+                </td>
+              </tr>
+              <tr v-if="input3.result.carry" class="tr-carry">
+                <td v-for="(item, index) of input3.result.carry" :key="index">
+                  {{ item == 1 ? item : '' }}
+                </td>
+              </tr>
+              <tr>
+                <td v-for="(item, index) of input3.result.result" :key="index">{{ item }}</td>
+              </tr>
+            </tbody>
+          </table>
+          <div>运算方式：二进制{{ input3.result.minus ? '减法' : '加法' }}</div>
+          <div>二进制结果：{{ input3.result.result }}</div>
+          <div>二转十结果：{{ input3.result.value }}</div>
+          <div>js运算：{{ input3.result.expression }}</div>
+          <div>蓝色0：长度不一致时所补的0</div>
+        </div>
+      </template>
     </div>
   </div>
 </template>
@@ -198,9 +209,12 @@ function isActive(result, type, index) {
     color: #a8b1ff;
     font-weight: 500;
   }
-  td.active2 {
+  .tr-carry {
     color: #8a5402;
     font-weight: 500;
+  }
+  .tr-borrows {
+    color: slateblue;
   }
 }
 .button {

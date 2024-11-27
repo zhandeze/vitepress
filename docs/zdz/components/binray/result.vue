@@ -7,6 +7,10 @@ const props = defineProps({
 <template>
   <div v-if="result" class="result" style="--labelWidth: auto">
     <div class="field-item">
+      <div class="label">输入值：</div>
+      <div class="value">{{ result.num }}</div>
+    </div>
+    <div class="field-item">
       <div class="label">初始值：</div>
       <div class="value">{{ result.binary }}（长度{{ result.binary.length }}）</div>
     </div>
@@ -51,7 +55,7 @@ const props = defineProps({
             </tr>
             <tr>
               <td v-for="(item, index) of result.rounded.carry" :key="index" :class="[{ active2: item == 1 }]">
-                {{ item || '' }}
+                {{ item == 1 ? item : '' }}
               </td>
             </tr>
             <tr>

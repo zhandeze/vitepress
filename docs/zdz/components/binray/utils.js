@@ -99,15 +99,17 @@ function floatToParts(num, binary) {
     mantissa = decimal.slice(0, 52 + offset);
     binary = `${integer}.${decimal.slice(0, 54 + offset)}`;
 
-    // 从0开始算
+    // 从0开始算 "向最近的偶数位舍入"
     // 进位规则：
     // 如果第51位为1 且 第52位和第53位至少有一个是1，则需要进位
     // 如果第51位为1 且 第52位和第53位都为0，第50位为1，则需要进位
     // 总结：如果第51位为1，第50、52和53位有一个是1，则需要进位
-    if (decimal[51 + offset] === '1' && [50, 52, 53].find((i) => decimal[i + offset] === '1')) {
-      rounded = binaryPlus(`${int}.${mantissa}`, `0.${''.padStart(51 + offset, '0')}1`);
+    // [50, 52, 53]
+    // if (decimal[51 + offset] === '1' && [52, 53].find((i) => decimal[i + offset] === '1')) {
+    if (decimal[52 + offset] === '1') {
+      rounded = doBinaryPlus(`${int}.${mantissa}`, `0.${''.padStart(51 + offset, '0')}1`);
       rounded.a += binary.slice(-2); // 这里加多2位 a要展示54位 方便查看进位情况
-      [int, mantissa] = rounded.result.join('').split('.');
+      [int, mantissa] = rounded.result.split('.');
     }
   } else {
     mantissa = decimal.padEnd(52, '0');
@@ -143,6 +145,49 @@ function floatToParts(num, binary) {
   };
 }
 
+export function binaryPlus(n1, n2) {
+  return operation(n1, n2, true);
+}
+
+export function binaryMinus(n1, n2) {
+  return operation(n1, n2, false);
+}
+
+export function operation(n1, n2, plus) {
+  let num1 = decimalToBinary(n1);
+  let num2 = decimalToBinary(n2);
+  const sameType = (n1 < 0 && n2 < 0) || (n1 > 0 && n2 > 0); // 两边是一样的 如：3+2  -3-(-2)
+  const abs1 = Math.abs(n1);
+  const abs2 = Math.abs(n2);
+
+  const sign = (plus ? n1 + n2 : n1 - n2) < 0 ? '-' : ''; // 减数 大于 被减数结果必是负数
+  const yes = plus ? !sameType : sameType;
+
+  const handler = yes ? doBinaryMinus : doBinaryPlus;
+
+  if (yes && abs1 < abs2) {
+    // 加法 -1+2 -2+1
+    // 减法 -2-(-3) 2-3
+    // 如上表达式都需要转换成减法，即大数减小数
+    // 所以需将num1和num2调换过来
+    [num1, num2] = [num2, num1];
+  }
+
+  const res = handler(num1.actualBinary, num2.actualBinary);
+  // n1 = num1.num;
+  // n2 = num2.num;
+  if (plus) {
+    res.expression = `${n1} + ${n2} = ${n1 + n2}`
+  } else {
+    res.expression = `${n1} - ${n2} = ${n1 - n2}`
+  }
+  res.num1 = num1;
+  res.num2 = num2;
+  res.value = sign + binaryToDecimal(res.result);
+  res.minus = yes;
+  return res;
+}
+
 /**
  * 二进制加法运算
  * 0 + 0 = 0
@@ -151,43 +196,33 @@ function floatToParts(num, binary) {
  * 1 + 1 = 10 写0 进位1
  * 进位后如果是  1 + 1 + 1 = 11 写1 进位1
  */
-export function binaryPlus(a, b) {
+function doBinaryPlus(a, b) {
   const res = formatNumber(a, b);
-  a = res.a
-  b = res.b
+  a = res.a;
+  b = res.b;
 
-
-  let carry = Array(a.length + 1);
-  let result = Array(a.length + 1);
-  let offset = 0;
+  let carry = Array(a.length + 1).fill(0);
+  let result = Array(a.length + 1).fill(0);
+  let borrow = 0;
   for (let i = a.length - 1; i >= 0; i--) {
-    const idx = i + 1;
-    if (a[i] === '.') {
-      carry[idx] = a[i];
-      result[idx] = a[i];
-      continue;
-    }
-
-    const n = Number(a[i]) + Number(b[i]) + offset;
+    const n = Number(a[i]) + Number(b[i]) + borrow;
     if (n > 1) {
-      offset = 1;
-      const index = a[i - 1] === '.' ? i - 1 : i;
-      carry[index] = 1;
+      borrow = 1;
+      carry[i] = 1;
       i === 0 && (result[0] = 1);
     } else {
-      offset = 0;
+      borrow = 0;
     }
-    if (!carry[idx]) {
-      carry[idx] = 0;
+    if ([1, 3].includes(n)) {
+      result[i + 1] = 1;
     }
-    result[idx] = [1, 3].includes(n) ? 1 : 0;
   }
-  if (!(0 in carry)) {
+  if (result[0] === 0) {
     carry.shift();
-  }
-  if (!(0 in result)) {
     result.shift();
   }
+  carry = carry.join('');
+  result = result.join('');
   if (result.length > a.length) {
     //    1.111
     // +  0.001
@@ -198,28 +233,53 @@ export function binaryPlus(a, b) {
     res.astart += result.length - a.length;
     res.bstart += result.length - a.length;
   }
-  res.a = a;
-  res.b = b;
-  res.result = result;
-  res.carry = carry;
+  const len = res.decimalLength;
+  res.a = shouldInsertDot(a, len);
+  res.b = shouldInsertDot(b, len);
+  res.result = shouldInsertDot(result, len);
+  res.carry = shouldInsertDot(carry, len);
   return res;
 }
 
-
-export function binaryMinus(r1, r2) {
-  // 2 - 3 = -1  3 - 2 = 1
-  // -2 - 3 = -5 2 + 3 = -5
-  // 2 - -3 = 5  2 + 3 = 5
-  // -2 - (-3) = 1  3 - 2 = 1
-  // -3 - (-2) = 1 3 - 2 = -1
-  const res = formatNumber(a, b)
+/**
+ * 0 - 0 = 0：从0中减去0结果还是0
+ * 1 - 0 = 1：从1中减去0结果是1
+ * 1 - 1 = 0：从1中减去1结果是0
+ * 0 - 1 = 1 (借位)：从0中减去1不能直接完成，
+ * 因此需要向高位借1，借位后0变成10（即十进制的2），
+ * 然后用10减去1得到1。同时，由于借了位，高位的值会相应减少。
+ */
+function doBinaryMinus(a, b) {
+  const res = formatNumber(a, b);
   a = res.a;
   b = res.b;
+  let borrows = new Array(a.length).fill(0);
+  let borroweds = a.split('').map(n => Number(n));
+  let result = '';
+  let n1, n2;
 
+  for (let i = borroweds.length - 1; i >= 0; i--) {
+    n1 = borroweds[i];
+    n2 = Number(b[i]);
+    
+    if (n1 < n2) {
+      n1 += 2;
+      borrows[i] = 2;
+      borroweds[i - 1] -= 1;
+    }
+    result = (n1 - n2) + result;
+  }
+  const len = res.decimalLength;
+  res.a = shouldInsertDot(a, len);
+  res.b = shouldInsertDot(b, len);
+  res.result = shouldInsertDot(result, len);
+  res.borrows = shouldInsertDot(borrows, len);
+  res.borroweds = shouldInsertDot(borroweds, len);
+  return res;
 }
 
 /**
- * 将a和b的长度对齐，前面补0或后面补0
+ * 将a和b的整数和小数位对齐，前面补0或后面补0
  * 例如:
  *  a = 1.111
  *  b = 11.11
@@ -245,16 +305,20 @@ function formatNumber(a, b) {
   let bstart = 0;
   let aend = 0;
   let bend = 0;
-  let dot = '';
 
   [aint, bint, astart, bstart] = format(aint, bint, 'padStart');
 
   if (adecimal || bdecimal) {
-    dot = '.';
     [adecimal, bdecimal, aend, bend] = format(adecimal, bdecimal, 'padEnd');
   }
-  a = aint + dot + adecimal;
-  b = bint + dot + bdecimal;
-  
-  return { a, b, astart, bstart, aend, bend };
+  a = aint + adecimal;
+  b = bint + bdecimal;
+
+  const decimalLength = adecimal.length;
+
+  return { a, b, decimalLength, astart, bstart, aend, bend };
+}
+
+function shouldInsertDot(str, len) {
+  return !len ? str : str.slice(0, -len).concat('.').concat(str.slice(-len));
 }
