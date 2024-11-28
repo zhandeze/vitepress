@@ -4,7 +4,6 @@ import { computed, reactive, useTemplateRef } from 'vue';
 import { decimalToBinary, binaryToDecimal, binaryPlus, binaryMinus } from './utils';
 import Result from './result.vue';
 
-const { isDark } = useData();
 const symbols = reactive({
   index: 0,
   list: [
@@ -80,7 +79,7 @@ function isActive(result, type, index) {
 </script>
 
 <template>
-  <div class="container" :name="isDark ? 'dark' : null">
+  <div class="container">
     <div class="top-view">
       <h5>十进制转二进制</h5>
       <form action="#" @submit.prevent="onConfirmClick1">
@@ -258,7 +257,7 @@ function isActive(result, type, index) {
   }
 }
 
-.container[name='dark'] {
+.container {
   .input {
     background-color: #ffffff;
     color: #333333;
